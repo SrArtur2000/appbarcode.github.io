@@ -49,12 +49,15 @@ function mostrar(classe, pequeno, nome, numero){
 function bip(f){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(), o=a.createOscillator(); o.frequency.value=f; o.connect(a.destination); o.start(); o.stop(a.currentTime+.12); }catch(e){} }
 function agora(){ const d=new Date(), p=n=>String(n).padStart(2,"0"); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
 
-function adicionar(numero, nome, bruto){
+// devolve o registro criado, ou o já existente (repetido: true)
+function adicionar(numero, nome, bruto, lendoNome){
   const ja = registros.find(x => x.numero === numero);
-  if(ja){ mostrar("rep","Já estava registrado", ja.nome, numero); bip(400); vibrar([80,60,80]); return; }
-  registros.push({numero, nome, hora: agora(), bruto: bruto||""}); salvar(); renderizar();
-  mostrar(nome ? "ok" : "rep", nome ? "Registrado" : "Registrado sem nome. Toque em ✎ na lista para preencher.", nome, numero);
+  if(ja){ mostrar("rep","Já estava registrado", ja.nome, numero); bip(400); vibrar([80,60,80]); return {reg: ja, repetido: true}; }
+  const reg = {numero, nome, hora: agora(), bruto: bruto||""};
+  registros.push(reg); salvar(); renderizar();
+  mostrar(nome || lendoNome ? "ok" : "rep", nome ? "Registrado" : lendoNome ? "Registrado. Lendo o nome…" : "Registrado sem nome. Toque em ✎ na lista para preencher.", nome, numero);
   bip(880); vibrar(60);
+  return {reg, repetido: false};
 }
 function vibrar(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
 
@@ -68,6 +71,20 @@ async function processar(fonte, bruto){
     else{ mostrar("err","Não achei o número USP. Aproxime e tente de novo.","",""); bip(200); }
   }catch(e){ mostrar("err","Falha na leitura: "+(e.message||e),"",""); }
   ocupado = false;
+}
+
+/* O número vem do código de barras (instantâneo); o nome é lido por OCR em
+   segundo plano e só é aceito se o OCR confirmar o mesmo número no cartão. */
+let fila = Promise.resolve();
+function preencherNome(reg, fonte){
+  fila = fila.then(async () => {
+    try{
+      const r = await lerImagem(fonte);
+      if(r.numero !== reg.numero || !r.nome) { if(!reg.nome) mostrar("rep","Nome não lido. Escaneie de novo ou toque em ✎ na lista.", "", reg.numero); return; }
+      reg.nome = r.nome; salvar(); renderizar();
+      if($("res").querySelector(".num")?.textContent === reg.numero) mostrar("ok","Registrado", reg.nome, reg.numero);
+    }catch(e){}
+  });
 }
 
 /* ---------- lista ---------- */
@@ -120,22 +137,27 @@ function limpar(){
 }
 
 /* ---------- câmera ---------- */
+const LARG_OCR = 1280;   // o OCR não ganha nada com mais que isso e fica bem mais lento
 function quadro(){
-  const v = $("v"), c = document.createElement("canvas");
-  c.width = v.videoWidth; c.height = v.videoHeight; c.getContext("2d").drawImage(v,0,0); return c;
+  const v = $("v"), k = Math.min(1, LARG_OCR / v.videoWidth), c = document.createElement("canvas");
+  c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+  c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); return c;
 }
 async function iniciarCamera(){
   if(!navigator.mediaDevices?.getUserMedia){ $("aviso").textContent = "Câmera indisponível aqui. Use “Tirar foto do e-Card”."; return; }
   const F = ZXing.BarcodeFormat;
-  const dicas = new Map([[ZXing.DecodeHintType.POSSIBLE_FORMATS,[F.CODE_128,F.CODE_39,F.CODE_93,F.ITF,F.EAN_13,F.EAN_8,F.CODABAR,F.QR_CODE]],[ZXing.DecodeHintType.TRY_HARDER,true]]);
-  const leitor = new ZXing.BrowserMultiFormatReader(dicas, 200);
+  const dicas = new Map([[ZXing.DecodeHintType.POSSIBLE_FORMATS,[F.ITF,F.CODE_128,F.CODE_39]]]);
+  const leitor = new ZXing.BrowserMultiFormatReader(dicas, 120);
   try{
     await leitor.decodeFromConstraints({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}}}, "v", res => {
-      if(!res || ocupado) return;
+      if(!res) return;
       const t = res.getText(), ag = Date.now();
       if(t === ultimo.texto && ag - ultimo.t < ESPERA_MS) return;
       ultimo = {texto:t, t:ag};
-      processar(quadro(), t);
+      const numero = t.replace(/\D/g,"").replace(/^0+/,"");
+      if(!numero) return;
+      const {reg, repetido} = adicionar(numero, "", t, true);
+      if(!repetido || !reg.nome) preencherNome(reg, quadro());
     });
     $("aviso").hidden = true; $("capturar").disabled = false;
   }catch(e){ $("aviso").textContent = "Não abri a câmera. Permita o acesso, recarregue, ou use “Tirar foto do e-Card”."; }
