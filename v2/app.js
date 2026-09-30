@@ -126,3 +126,4 @@ $("baixar").onclick = baixar; $("limpar").onclick = limpar;
 $("evento").onchange = () => { trocarEvento($("evento").value); $("evento").value = store.evento; };
 carregar(); $("evento").value = store.evento; listarEventos();
 renderizar(); iniciarCamera();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
