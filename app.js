@@ -1,8 +1,9 @@
 "use strict";
 const $ = id => document.getElementById(id);
-const CHAVE = "ecard.registros.v1";
+const CHAVE = "ecard.dados.v2", CHAVE_V1 = "ecard.registros.v1";
 const ESPERA_MS = 3000;            // ignora o mesmo código de barras por este tempo
-let registros = [];                // {numero, nome, hora, bruto}
+let store = {evento: "Evento 1", aparelho: "Celular 1", eventos: {}};   // uma lista de registros por evento
+let registros = [];                // registros do evento atual: {numero, nome, hora, bruto, aparelho}
 let editando = null;               // número em edição
 let ocupado = false;
 let ultimo = {texto: "", t: 0};
@@ -10,8 +11,28 @@ let lerNome = true;                // desligue para registrar só o número (mai
 try{ lerNome = localStorage.getItem("ecard.lerNome") !== "0"; }catch(e){}
 
 /* ---------- armazenamento local (fica só neste celular) ---------- */
-function carregar(){ try{ registros = JSON.parse(localStorage.getItem(CHAVE)) || []; }catch(e){ registros = []; } }
-function salvar(){ try{ localStorage.setItem(CHAVE, JSON.stringify(registros)); }catch(e){ mostrar("err","Não foi possível salvar no celular. Baixe a planilha agora.","—"); } }
+function carregar(){
+  try{
+    const v2 = JSON.parse(localStorage.getItem(CHAVE));
+    if(v2 && v2.eventos) store = v2;
+    else{                                                    // versão antiga: uma lista só
+      const v1 = JSON.parse(localStorage.getItem(CHAVE_V1));
+      if(Array.isArray(v1)) store.eventos[store.evento] = v1;
+    }
+  }catch(e){}
+  registros = store.eventos[store.evento] || (store.eventos[store.evento] = []);
+}
+function salvar(){
+  store.eventos[store.evento] = registros;
+  try{ localStorage.setItem(CHAVE, JSON.stringify(store)); }catch(e){ mostrar("err","Não foi possível salvar no celular. Baixe a planilha agora.","—"); }
+}
+function trocarEvento(nome){
+  nome = nome.trim(); if(!nome || nome === store.evento) return;
+  salvar(); store.evento = nome; registros = store.eventos[nome] || (store.eventos[nome] = []);
+  editando = null; salvar(); renderizar(); listarEventos();
+}
+function listarEventos(){ $("lista-eventos").innerHTML = Object.keys(store.eventos).map(n => `<option value="${n.replace(/"/g,"&quot;")}">`).join(""); }
+const slug = t => t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"") || "x";
 
 /* ---------- interpretação do texto do cartão ---------- */
 // número USP: linha só de dígitos (6 a 9); nome: linha com letras logo acima dela
@@ -55,7 +76,7 @@ function agora(){ const d=new Date(), p=n=>String(n).padStart(2,"0"); return `${
 function adicionar(numero, nome, bruto, lendoNome){
   const ja = registros.find(x => x.numero === numero);
   if(ja){ mostrar("rep","Já estava registrado", ja.nome, numero); bip(400); vibrar([80,60,80]); return {reg: ja, repetido: true}; }
-  const reg = {numero, nome, hora: agora(), bruto: bruto||""};
+  const reg = {numero, nome, hora: agora(), bruto: bruto||"", aparelho: store.aparelho};
   registros.push(reg); salvar(); renderizar();
   mostrar(nome || lendoNome ? "ok" : "rep", nome ? "Registrado" : lendoNome ? "Registrado. Lendo o nome…" : "Registrado sem nome. Toque em ✎ na lista para preencher.", nome, numero);
   bip(880); vibrar(60);
@@ -120,12 +141,12 @@ function renderizar(){
 /* ---------- planilha ---------- */
 function baixar(){
   if(!registros.length) return;
-  const linhas = [["Nº USP","Nome","Data/hora"], ...registros.map(x=>[x.numero,x.nome,x.hora])];
+  const linhas = [["Evento","Nº USP","Nome","Data/hora","Aparelho"], ...registros.map(x=>[store.evento,x.numero,x.nome,x.hora,x.aparelho||store.aparelho])];
   const ws = XLSX.utils.aoa_to_sheet(linhas);
-  for(let i=1;i<linhas.length;i++) ws["A"+(i+1)] = {t:"s", v:linhas[i][0]};   // texto, para o Excel não alterar o número
-  ws["!cols"] = [{wch:12},{wch:40},{wch:20}];
+  for(let i=1;i<linhas.length;i++) ws["B"+(i+1)] = {t:"s", v:linhas[i][1]};   // texto, para o Excel não alterar o número
+  ws["!cols"] = [{wch:24},{wch:12},{wch:40},{wch:20},{wch:16}];
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Leituras");
-  const d = new Date(), nome = `presenca_ecard_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}.xlsx`;
+  const d = new Date(), nome = `presenca_${slug(store.evento)}_${slug(store.aparelho)}_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}.xlsx`;
   const buf = XLSX.write(wb, {bookType:"xlsx", type:"array"});
   const blob = new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome;
@@ -134,8 +155,8 @@ function baixar(){
 let limpando = false;
 function limpar(){
   const b = $("limpar");
-  if(!limpando){ limpando = true; b.textContent = "Toque de novo para apagar tudo"; setTimeout(()=>{ limpando=false; b.textContent="Apagar tudo"; }, 4000); return; }
-  registros = []; salvar(); renderizar(); limpando = false; b.textContent = "Apagar tudo";
+  if(!limpando){ limpando = true; b.textContent = "Toque de novo para apagar este evento"; setTimeout(()=>{ limpando=false; b.textContent="Apagar este evento"; }, 4000); return; }
+  registros = []; salvar(); renderizar(); limpando = false; b.textContent = "Apagar este evento";
 }
 
 /* ---------- câmera ---------- */
@@ -170,7 +191,10 @@ $("capturar").onclick = () => { if($("v").videoWidth) processar(quadro(), ""); }
 $("arq").onchange = e => { const f = e.target.files[0]; if(f) processar(f, ""); e.target.value = ""; };
 $("f").onsubmit = e => { e.preventDefault(); const v = $("manual").value.replace(/\D/g,"").replace(/^0+/,""); if(v){ adicionar(v, "", ""); $("manual").value = ""; } };
 $("baixar").onclick = baixar; $("limpar").onclick = limpar;
-carregar(); renderizar(); iniciarCamera();
+$("evento").onchange = () => { trocarEvento($("evento").value); $("evento").value = store.evento; };
+$("aparelho").onchange = () => { store.aparelho = $("aparelho").value.trim() || store.aparelho; $("aparelho").value = store.aparelho; salvar(); };
+carregar(); $("evento").value = store.evento; $("aparelho").value = store.aparelho; listarEventos();
+renderizar(); iniciarCamera();
 $("nome").checked = lerNome;
 $("nome").onchange = () => {
   lerNome = $("nome").checked;
