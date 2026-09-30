@@ -1,8 +1,7 @@
-// Guarda os arquivos no aparelho para o app abrir e ler cartões sem internet.
-const V = "ecard-v4";
+// Guarda os arquivos no aparelho para o app abrir sem internet.
+const V = "ecard-v5";
 const ARQUIVOS = ["./", "index.html", "app.js", "manifest.webmanifest", "icone-192.png", "icone-512.png",
-  "lib/tesseract.min.js", "lib/worker.min.js", "lib/zxing.min.js", "lib/xlsx.full.min.js",
-  "lib/tesseract-core-simd-lstm.wasm.js", "lib/tesseract-core-lstm.wasm.js", "lib/por.traineddata.gz"];
+  "lib/zxing.min.js", "lib/xlsx.full.min.js"];
 
 self.addEventListener("install", e => e.waitUntil(caches.open(V).then(c => c.addAll(ARQUIVOS)).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(
