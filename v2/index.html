@@ -55,10 +55,10 @@ li.vazio{color:var(--mudo);border:0}
 <div id="cam"><video id="v" playsinline muted></video><div id="mira"></div><div id="aviso">Iniciando a câmera…</div></div>
 <div id="res" aria-live="polite"><small>Aponte a câmera para o código de barras do e-Card</small></div>
 <form id="f"><input id="manual" inputmode="numeric" placeholder="Digitar nº USP manualmente" autocomplete="off"><button>Adicionar</button></form>
+<div class="linha" style="margin:12px 16px 0"><button id="baixar" type="button">Baixar planilha (.xlsx)</button><button id="limpar" type="button" class="sec">Apagar este evento</button></div>
 <main>
 <h2>Registros</h2>
 <ul id="lista"></ul>
-<div class="linha" style="margin:12px 0 0"><button id="baixar" type="button">Baixar planilha (.xlsx)</button><button id="limpar" type="button" class="sec">Apagar este evento</button></div>
 </main>
 <script src="lib/zxing.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
