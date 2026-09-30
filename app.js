@@ -6,6 +6,8 @@ let registros = [];                // {numero, nome, hora, bruto}
 let editando = null;               // número em edição
 let ocupado = false;
 let ultimo = {texto: "", t: 0};
+let lerNome = true;                // desligue para registrar só o número (mais leve)
+try{ lerNome = localStorage.getItem("ecard.lerNome") !== "0"; }catch(e){}
 
 /* ---------- armazenamento local (fica só neste celular) ---------- */
 function carregar(){ try{ registros = JSON.parse(localStorage.getItem(CHAVE)) || []; }catch(e){ registros = []; } }
@@ -156,8 +158,8 @@ async function iniciarCamera(){
       ultimo = {texto:t, t:ag};
       const numero = t.replace(/\D/g,"").replace(/^0+/,"");
       if(!numero) return;
-      const {reg, repetido} = adicionar(numero, "", t, true);
-      if(!repetido || !reg.nome) preencherNome(reg, quadro());
+      const {reg, repetido} = adicionar(numero, "", t, lerNome);
+      if(lerNome && (!repetido || !reg.nome)) preencherNome(reg, quadro());
     });
     $("aviso").hidden = true; $("capturar").disabled = false;
   }catch(e){ $("aviso").textContent = "Não abri a câmera. Permita o acesso, recarregue, ou use “Tirar foto do e-Card”."; }
@@ -169,5 +171,11 @@ $("arq").onchange = e => { const f = e.target.files[0]; if(f) processar(f, ""); 
 $("f").onsubmit = e => { e.preventDefault(); const v = $("manual").value.replace(/\D/g,"").replace(/^0+/,""); if(v){ adicionar(v, "", ""); $("manual").value = ""; } };
 $("baixar").onclick = baixar; $("limpar").onclick = limpar;
 carregar(); renderizar(); iniciarCamera();
-setTimeout(()=>ocr().catch(()=>{}), 800);   // aquece o OCR em segundo plano
+$("nome").checked = lerNome;
+$("nome").onchange = () => {
+  lerNome = $("nome").checked;
+  try{ localStorage.setItem("ecard.lerNome", lerNome ? "1" : "0"); }catch(e){}
+  if(lerNome) ocr().catch(()=>{});
+};
+if(lerNome) setTimeout(()=>ocr().catch(()=>{}), 800);   // aquece o OCR em segundo plano
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});

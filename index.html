@@ -26,6 +26,8 @@ video{width:100%;height:100%;object-fit:cover;display:block}
 .nome{display:block;font-size:1.15rem;font-weight:600;overflow-wrap:anywhere}
 .num{font-size:1.9rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.03em}
 .linha{display:flex;flex-wrap:wrap;gap:8px;margin:12px 16px 0}
+.opcao{display:flex;gap:8px;align-items:flex-start;margin:12px 16px 0;color:var(--mudo);font-size:.9rem}
+.opcao input{flex:none;width:auto;margin-top:3px;padding:0;accent-color:var(--azul)}
 form{display:flex;gap:8px;margin:12px 16px 0}
 input{flex:1;min-width:0;background:var(--painel);color:var(--fg);border:1px solid var(--linha);border-radius:8px;padding:10px 12px;font:inherit}
 button,label.btn{background:var(--azul);color:#06121f;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
@@ -51,6 +53,7 @@ li.vazio{color:var(--mudo);border:0}
   <button id="capturar" type="button" disabled>Capturar agora</button>
   <label class="btn" for="arq">Tirar foto do e-Card</label><input id="arq" type="file" accept="image/*" capture="environment" hidden>
 </div>
+<label class="opcao"><input id="nome" type="checkbox"> Ler também o nome (mais lento; desligue para registrar só o número)</label>
 <form id="f"><input id="manual" inputmode="numeric" placeholder="Digitar nº USP manualmente" autocomplete="off"><button>Adicionar</button></form>
 <main>
 <h2>Registros</h2>
