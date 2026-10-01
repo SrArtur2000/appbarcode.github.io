@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10151c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone-192.png">
+<title>Leitor E-Card USP</title>
+<style>
+:root{--bg:#10151c;--painel:#18202a;--linha:#2a3644;--fg:#e8edf3;--mudo:#93a1b2;--ok:#3fb27f;--aviso:#e0a83a;--erro:#e5604f;--azul:#5b9dff}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{display:flex;justify-content:space-between;align-items:baseline;padding:12px 16px;gap:12px}
+h1{font-size:1.05rem;margin:0}
+#total{font-variant-numeric:tabular-nums;color:var(--mudo)}
+#total b{color:var(--fg);font-size:1.3rem}
+#cam{position:relative;margin:0 16px;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:4/3;max-height:22vh;width:calc(100% - 32px);align-self:center}
+video{width:100%;height:100%;object-fit:cover;display:block}
+#mira{position:absolute;inset:30% 8%;border:2px solid #ffffffaa;border-radius:8px;pointer-events:none}
+#aviso{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--mudo)}
+#res{margin:12px 16px 0;padding:12px 16px;border-radius:10px;background:var(--painel);border-left:6px solid var(--linha);min-height:76px}
+#res.pend{border-color:var(--azul)}
+#res.ok{border-color:var(--ok)}#res.rep{border-color:var(--aviso)}#res.err{border-color:var(--erro)}
+#res small{color:var(--mudo);display:block}
+.num{font-size:1.9rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.03em}
+#confirma{display:flex;gap:8px;margin:8px 16px 0}
+#confirma button{flex:1;padding:16px;font-size:1.1rem}
+#confirma #usar{background:var(--ok)}
+.cfg{display:flex;margin:0 16px 12px}
+.cfg label{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:.75rem;color:var(--mudo);text-transform:uppercase;letter-spacing:.06em}
+.cfg input{font-size:1rem;text-transform:none;letter-spacing:0}
+#eventos{margin:0 16px 12px;border:1px solid var(--linha);border-radius:8px;background:var(--painel)}
+#eventos summary{padding:10px 12px;cursor:pointer;color:var(--mudo)}
+#eventos ul{max-height:30vh;overflow:auto;padding:0 6px 6px}
+#eventos li{padding:0;border:0}
+.ev-b{width:100%;display:flex;align-items:center;gap:8px;text-align:left;background:transparent;color:var(--fg);border:0;border-radius:6px;padding:10px 8px;font-weight:400}
+.ev.atual .ev-b{background:#5b9dff22;font-weight:600}
+.linha{display:flex;gap:8px;margin:12px 16px 0}
+.linha button{flex:1;padding:10px 8px}
+form{display:flex;gap:8px;margin:12px 16px 0}
+input{flex:1;min-width:0;background:var(--painel);color:var(--fg);border:1px solid var(--linha);border-radius:8px;padding:10px 12px;font:inherit}
+button,label.btn{background:var(--azul);color:#06121f;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+button.sec,label.btn{background:var(--painel);color:var(--fg);border:1px solid var(--linha)}
+button:disabled{opacity:.5}
+button.sm{padding:6px 10px}
+:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+main{flex:1;min-height:35vh;overflow:auto;padding:12px 16px}
+h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mudo);margin:0 0 6px}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--linha);font-variant-numeric:tabular-nums}
+li .t{flex:1;min-width:0;overflow-wrap:anywhere}
+li .h{color:var(--mudo)}
+li.edita input{flex:1}
+li.vazio{color:var(--mudo);border:0}
+.esq,.dir{display:contents}
+header{order:0}.cfg{order:1}#eventos{order:2}#cam{order:3}#res{order:4}#confirma{order:5}#f{order:6}.linha{order:7}main{order:8}
+/* Tablet e telas largas: duas colunas (câmera à esquerda, eventos e registros à direita) */
+@media (min-width:700px) and (min-height:480px){
+  body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100dvh}
+  header{grid-column:1/-1;padding:16px 24px}
+  h1{font-size:1.35rem}
+  #total b{font-size:1.6rem}
+  .esq,.dir{display:flex;flex-direction:column;min-height:0;overflow:auto;padding-bottom:12px}
+  .dir{padding-right:8px}
+  #cam{max-height:56vh}
+  #res{min-height:110px}
+  .num{font-size:2.6rem}
+  #confirma button{padding:22px;font-size:1.3rem}
+  input,button{font-size:1.1rem}
+  input{padding:14px 16px}
+  button{padding:14px 18px}
+  .linha button{padding:14px 10px}
+  .ev-b{padding:14px 10px}
+  button.sm{padding:10px 14px}
+  #eventos summary{padding:14px 12px}
+  #eventos ul{max-height:26vh}
+  main{min-height:0;flex:1}
+  li{padding:12px 0;font-size:1.15rem}
+}
+</style>
+</head>
+<body>
+<header><h1>Leitor E-Card USP</h1><div id="total"><b id="n">0</b> neste evento</div></header>
+<div class="esq">
+<div id="cam"><video id="v" playsinline muted></video><div id="mira"></div><div id="aviso">Iniciando a câmera…</div></div>
+<div id="res" aria-live="polite"><small>Aponte a câmera para o código de barras do e-Card</small></div>
+<div id="confirma" hidden><button id="descartar" type="button" class="sec">✕ Descartar</button><button id="usar" type="button">✓ Usar</button></div>
+<form id="f"><input id="manual" inputmode="numeric" placeholder="Digitar nº USP manualmente" autocomplete="off"><button>Adicionar</button></form>
+</div>
+<div class="dir">
+<div class="cfg">
+  <label>Evento<input id="evento" list="lista-eventos" autocomplete="off" placeholder="Nome do evento"></label>
+  <datalist id="lista-eventos"></datalist>
+</div>
+<details id="eventos"><summary>Eventos salvos (<span id="n-ev">0</span>) · toque para abrir</summary><ul id="lista-ev"></ul></details>
+<div class="linha" style="margin:12px 16px 0"><button id="baixar" type="button">Baixar planilha</button><button id="limpar" type="button" class="sec">Apagar este evento</button></div>
+<main>
+<h2>Registros</h2>
+<ul id="lista"></ul>
+</main>
+</div>
+<script src="lib/zxing.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
