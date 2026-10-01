@@ -2,7 +2,7 @@
 
 Aplicativo web (PWA) que lê o código de barras do e-Card da USP com a câmera do celular ou tablet e registra o número USP em uma lista por evento, exportável em planilha `.xlsx`. Roda inteiro no aparelho: não há servidor, conta nem banco de dados.
 
-Hospedagem: GitHub Pages, repositório `SrArtur2000/appbarcode.github.io`. Cada versão fica em uma pasta própria (`v2/` … `v8/`) e a raiz guarda a primeira versão, sem service worker.
+Hospedagem: GitHub Pages, repositório `SrArtur2000/appbarcode.github.io`. Cada versão fica em uma pasta própria (`v2/` … `v9/`) e a raiz guarda a primeira versão, sem service worker.
 
 ## Por que uma pasta por versão
 
@@ -17,6 +17,7 @@ O service worker guarda os arquivos no aparelho, e o navegador também mantém o
 | v6 | Câmera menor, lista de registros rolável, botões de baixar e apagar lado a lado |
 | v7 | Layout de duas colunas para tablet (a partir de 700 × 480 px) |
 | v8 | "Apagar este evento" remove também o nome do evento da lista de salvos |
+| v9 | O nome da planilha ganha um código de 6 caracteres único de cada aparelho (`..._HHMM_K7M2QX.xlsx`), para dois celulares não gerarem arquivos com o mesmo nome |
 
 ## Como funciona a leitura
 
@@ -44,7 +45,7 @@ A leitura é rápida, mas por ângulo e iluminação pode sair errada. Por isso 
 - **Nenhum dado sai do aparelho.** O `app.js` não faz chamadas de rede (sem `fetch`, `XMLHttpRequest`, `WebSocket` ou `sendBeacon`) e não contém endereços externos. O servidor (GitHub Pages) só entrega os arquivos do app.
 - **Service worker (`sw.js`):** só busca e guarda os arquivos do próprio app. Páginas e código usam rede primeiro (para pegar a versão nova), com o cache como reserva; as bibliotecas em `lib/` usam o cache primeiro.
 - **Câmera:** o vídeo é processado no aparelho; nenhuma imagem é salva nem enviada.
-- **Planilha:** o `.xlsx` é gerado no navegador (SheetJS, `lib/xlsx.full.min.js`) e baixado para o aparelho. Colunas: `Evento`, `Nº USP` (gravado como texto, para o Excel não alterar o número), `Data/hora`. Nome do arquivo: `presenca_<evento>_<AAAA-MM-DD>_<HHMM>.xlsx`.
+- **Planilha:** o `.xlsx` é gerado no navegador (SheetJS, `lib/xlsx.full.min.js`) e baixado para o aparelho. Colunas: `Evento`, `Nº USP` (gravado como texto, para o Excel não alterar o número), `Data/hora`. Nome do arquivo (v9): `presenca_<evento>_<AAAA-MM-DD>_<HHMM>_<código do aparelho>.xlsx`. O código (6 letras/números, sem 0/O/1/I) é sorteado na primeira abertura, fica guardado no aparelho (`localStorage`, chave `ecard.aparelho`) e aparece ao lado do título do app. Limpar os dados do navegador gera um código novo.
 
 ### Limites a ter em mente
 
@@ -72,7 +73,7 @@ A leitura é rápida, mas por ângulo e iluminação pode sair errada. Por isso 
 
 ## Criar uma nova versão
 
-1. Copie a pasta da última versão: `cp -r v8 v9`.
-2. Em `v9/sw.js`, troque o prefixo do cache (`ecard8` → `ecard9`, em todas as ocorrências).
-3. Faça as mudanças só em `v9/`.
-4. Commit e push para a `main`; o GitHub Pages publica em `/v9/`.
+1. Copie a pasta da última versão: `cp -r v9 v10`.
+2. Em `v10/sw.js`, troque o prefixo do cache (`ecard9` → `ecard10`, em todas as ocorrências).
+3. Faça as mudanças só em `v10/`.
+4. Commit e push para a `main`; o GitHub Pages publica em `/v10/`.
